@@ -6,10 +6,11 @@ import os
 app = Flask(__name__)
 CORS(app)
 
-# Set your OpenAI API key
-client = openai.OpenAI(
-    api_key=os.getenv('OPENAI_API_KEY')
-)
+def get_openai_client():
+    api_key = os.getenv('OPENAI_API_KEY')
+    if not api_key:
+        raise ValueError('OPENAI_API_KEY environment variable not set')
+    return openai.OpenAI(api_key=api_key)
 
 @app.route('/solve', methods=['POST'])
 def solve_leetcode():
@@ -31,6 +32,7 @@ Provide:
 3. Complete working code
 4. Test cases"""
 
+        client = get_openai_client()
         response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
@@ -69,6 +71,7 @@ Provide:
 2. What was improved
 3. Complexity analysis"""
 
+        client = get_openai_client()
         response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
@@ -102,6 +105,7 @@ def explain_code():
 
 Include time and space complexity."""
 
+        client = get_openai_client()
         response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
@@ -142,6 +146,7 @@ Provide:
 2. Fixed code
 3. Explanation"""
 
+        client = get_openai_client()
         response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
