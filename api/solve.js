@@ -2,7 +2,6 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  res.setHeader('Cache-Control', 'no-cache');
 
   if (req.method === 'OPTIONS') {
     res.status(200).end();
@@ -14,7 +13,7 @@ export default async function handler(req, res) {
     return;
   }
 
-  const { problem, language = 'python' } = req.body;
+  const { problem } = req.body;
   
   if (!problem) {
     res.status(400).json({ error: 'Problem required' });
@@ -22,18 +21,6 @@ export default async function handler(req, res) {
   }
 
   try {
-    const prompt = `You are an expert LeetCode problem solver. Solve this problem optimally:
-
-${problem}
-
-Provide:
-1. Complete working ${language} solution
-2. Time & Space complexity
-3. Brief explanation
-4. Handle edge cases
-
-Format: Clean code with comments.`;
-
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -43,32 +30,20 @@ Format: Clean code with comments.`;
       body: JSON.stringify({
         model: 'gpt-4o-mini',
         messages: [
-          { role: 'system', content: 'You are a LeetCode expert who provides optimal solutions with clear explanations.' },
-          { role: 'user', content: prompt }
+          { role: 'system', content: 'You are a LeetCode expert.' },
+          { role: 'user', content: `Solve this LeetCode problem: ${problem}` }
         ],
-        max_tokens: 2000,
-        temperature: 0.3,
-        stream: false
+        max_tokens: 1500
       })
     });
-
-    if (!response.ok) {
-      throw new Error(`OpenAI API error: ${response.status}`);
-    }
 
     const data = await response.json();
     
     res.status(200).json({
       success: true,
-      solution: data.choices[0].message.content,
-      language,
-      timestamp: new Date().toISOString()
+      solution: data.choices[0].message.content
     });
   } catch (error) {
-    console.error('API Error:', error);
-    res.status(500).json({ 
-      error: 'Failed to solve problem',
-      details: error.message 
-    });
+    res.status(500).json({ error: error.message });
   }
 }
