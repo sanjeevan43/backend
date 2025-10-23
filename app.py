@@ -6,32 +6,26 @@ import os
 app = Flask(__name__)
 CORS(app)
 
-OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
-
 @app.route('/')
 def home():
-    return jsonify({
-        "message": "LeetCode AI Solver API",
-        "status": "running",
-        "endpoints": {
-            "POST /solve": "Solve LeetCode problems",
-            "POST /optimize": "Optimize code",
-            "POST /explain": "Explain code"
-        }
-    })
+    return jsonify({"message": "LeetCode AI Solver", "status": "running"})
 
 @app.route('/solve', methods=['POST'])
 def solve():
-    data = request.get_json()
-    problem = data.get('problem', '')
-    
-    if not problem:
-        return jsonify({"error": "Problem required"}), 400
-    
     try:
+        data = request.get_json()
+        problem = data.get('problem', '')
+        
+        if not problem:
+            return jsonify({"error": "Problem required"}), 400
+        
+        api_key = os.getenv('OPENAI_API_KEY')
+        if not api_key:
+            return jsonify({"error": "API key not configured"}), 500
+        
         headers = {
             'Content-Type': 'application/json',
-            'Authorization': f'Bearer {OPENAI_API_KEY}'
+            'Authorization': f'Bearer {api_key}'
         }
         
         payload = {
@@ -46,7 +40,8 @@ def solve():
         response = requests.post(
             'https://api.openai.com/v1/chat/completions',
             headers=headers,
-            json=payload
+            json=payload,
+            timeout=30
         )
         
         if response.status_code == 200:
@@ -56,11 +51,11 @@ def solve():
                 "solution": result['choices'][0]['message']['content']
             })
         else:
-            return jsonify({"error": "API error"}), 500
+            return jsonify({"error": f"OpenAI API error: {response.status_code}"}), 500
             
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port)
+    app.run(host='0.0.0.0', port=port, debug=False)
