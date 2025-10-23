@@ -679,8 +679,5 @@ public List<Integer> sieveOfEratosthenes(int limit) {
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# Export for Vercel
-application = app
-
 if __name__ == '__main__':
     app.run(debug=True)
