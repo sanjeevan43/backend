@@ -10,6 +10,10 @@ CORS(app)
 def root():
     return jsonify({"message": "LeetCode Solver API", "endpoint": "/solve"})
 
+def is_leetcode_problem(problem):
+    leetcode_keywords = ["leetcode", "two sum", "array", "string", "linked list", "tree", "graph", "dynamic programming", "binary search", "sorting", "hash table", "stack", "queue", "heap", "trie", "backtracking", "greedy", "sliding window", "dfs", "bfs"]
+    return any(keyword in problem.lower() for keyword in leetcode_keywords)
+
 @app.route("/solve", methods=["POST"])
 def solve_leetcode():
     data = request.get_json()
@@ -17,6 +21,9 @@ def solve_leetcode():
         return jsonify({"error": "Problem field required"}), 400
     
     problem = data["problem"]
+    
+    if not is_leetcode_problem(problem):
+        return jsonify({"error": "Only LeetCode problems are allowed"}), 400
     API_KEY = os.getenv("GEMINI_API_KEY")
     if not API_KEY:
         return jsonify({"error": "API key not configured"}), 500
