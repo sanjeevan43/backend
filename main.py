@@ -20,18 +20,19 @@ app.add_middleware(
 class LeetCodeRequest(BaseModel):
     problem: str
 
-API_KEY = os.getenv("GEMINI_API_KEY")
 API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
-
-if not API_KEY:
-    raise ValueError("GEMINI_API_KEY environment variable is required")
 
 @app.get("/")
 async def root():
-    return {"message": "LeetCode Solver API", "endpoint": "/solve"}
+    api_key_status = "configured" if os.getenv("GEMINI_API_KEY") else "missing"
+    return {"message": "LeetCode Solver API", "endpoint": "/solve", "api_key": api_key_status}
 
 @app.post("/solve")
 async def solve_leetcode(request: LeetCodeRequest):
+    API_KEY = os.getenv("GEMINI_API_KEY")
+    if not API_KEY:
+        return {"error": "API key not configured"}
+    
     try:
         response = requests.post(
             API_URL,
