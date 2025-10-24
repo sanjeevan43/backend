@@ -17,8 +17,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-class MessageRequest(BaseModel):
-    message: str
+class LeetCodeRequest(BaseModel):
+    problem: str
     session_id: str = "default"
 
 
@@ -35,18 +35,18 @@ sessions = {}
 
 @app.get("/")
 async def root():
-    return {"message": "LeetCode Solving AI is running", "endpoints": ["/chat", "/chat/{session_id}"]}
+    return {"message": "LeetCode Solver API", "endpoints": ["/solve", "/history/{session_id}"]}
 
 @app.get("/health")
 async def health():
     return {"status": "healthy"}
 
-@app.post("/chat")
-async def chat(request: MessageRequest):
+@app.post("/solve")
+async def solve_leetcode(request: LeetCodeRequest):
     if request.session_id not in sessions:
         sessions[request.session_id] = []
     
-    sessions[request.session_id].append({"role": "user", "message": request.message})
+    sessions[request.session_id].append({"role": "user", "problem": request.problem})
     
     try:
         response = requests.post(
@@ -57,9 +57,9 @@ async def chat(request: MessageRequest):
             },
             json={
                 "contents": [{
-                    "parts": [{"text": f"You are a LeetCode problem-solving AI assistant. Help users solve coding problems by providing clear explanations, optimal solutions, and step-by-step approaches. Focus on algorithms, data structures, and coding best practices. If the question is not coding-related, respond with 'I can only help with coding and algorithm problems.' Previous conversation: {sessions[request.session_id][-10:] if len(sessions[request.session_id]) > 1 else []}. Current question: {request.message}"}]
+                    "parts": [{"text": f"You are a LeetCode problem solver. ONLY solve LeetCode problems. Provide: 1) Problem analysis 2) Optimal solution with code 3) Time/Space complexity. If input is not a LeetCode problem, respond 'Please provide a valid LeetCode problem to solve.' Problem: {request.problem}"}]
                 }],
-                "generationConfig": {"maxOutputTokens": 100}
+                "generationConfig": {"maxOutputTokens": 500}
             },
             timeout=30
         )
@@ -67,7 +67,7 @@ async def chat(request: MessageRequest):
         if response.status_code == 200:
             data = response.json()
             ai_response = data["candidates"][0]["content"]["parts"][0]["text"]
-            sessions[request.session_id].append({"role": "assistant", "message": ai_response})
+            sessions[request.session_id].append({"role": "assistant", "solution": ai_response})
             return {"response": ai_response.strip().replace("**", "").replace("*", "")}
         else:
             return {"error": f"API Error: {response.status_code}"}
@@ -75,8 +75,8 @@ async def chat(request: MessageRequest):
     except Exception as e:
         return {"error": str(e)}
 
-@app.get("/chat/{session_id}")
-async def get_chat_history(session_id: str):
+@app.get("/history/{session_id}")
+async def get_solution_history(session_id: str):
     if session_id in sessions:
         return {"session_id": session_id, "history": sessions[session_id]}
     return {"session_id": session_id, "history": []}
