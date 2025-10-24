@@ -1,31 +1,25 @@
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from flask import Flask, request, jsonify
+from flask_cors import CORS
 import requests
 import os
 
-app = FastAPI()
+app = Flask(__name__)
+CORS(app)
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=False,
-    allow_methods=["GET", "POST"],
-    allow_headers=["*"],
-)
-
-class LeetCodeRequest(BaseModel):
-    problem: str
-
-@app.get("/")
+@app.route("/")
 def root():
-    return {"message": "LeetCode Solver API", "endpoint": "/solve"}
+    return jsonify({"message": "LeetCode Solver API", "endpoint": "/solve"})
 
-@app.post("/solve")
-def solve_leetcode(request: LeetCodeRequest):
+@app.route("/solve", methods=["POST"])
+def solve_leetcode():
+    data = request.get_json()
+    if not data or "problem" not in data:
+        return jsonify({"error": "Problem field required"}), 400
+    
+    problem = data["problem"]
     API_KEY = os.getenv("GEMINI_API_KEY")
     if not API_KEY:
-        return {"error": "API key not configured"}
+        return jsonify({"error": "API key not configured"}), 500
     
     try:
         response = requests.post(
@@ -36,7 +30,7 @@ def solve_leetcode(request: LeetCodeRequest):
             },
             json={
                 "contents": [{
-                    "parts": [{"text": f"Solve this LeetCode problem: {request.problem}"}]
+                    "parts": [{"text": f"Solve this LeetCode problem: {problem}"}]
                 }],
                 "generationConfig": {"maxOutputTokens": 500}
             },
@@ -46,9 +40,9 @@ def solve_leetcode(request: LeetCodeRequest):
         if response.status_code == 200:
             data = response.json()
             ai_response = data["candidates"][0]["content"]["parts"][0]["text"]
-            return {"response": ai_response}
+            return jsonify({"response": ai_response})
         else:
-            return {"error": f"API Error: {response.status_code}"}
+            return jsonify({"error": f"API Error: {response.status_code}"}), 500
             
     except Exception as e:
-        return {"error": str(e)}
+        return jsonify({"error": str(e)}), 500
