@@ -33,6 +33,14 @@ if not API_KEY:
 
 sessions = {}
 
+@app.get("/")
+async def root():
+    return {"message": "LeetCode Solving AI is running", "endpoints": ["/chat", "/chat/{session_id}"]}
+
+@app.get("/health")
+async def health():
+    return {"status": "healthy"}
+
 @app.post("/chat")
 async def chat(request: MessageRequest):
     if request.session_id not in sessions:
