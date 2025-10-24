@@ -81,6 +81,4 @@ async def get_chat_history(session_id: str):
         return {"session_id": session_id, "history": sessions[session_id]}
     return {"session_id": session_id, "history": []}
 
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8001)
+# Vercel will handle the server startup
