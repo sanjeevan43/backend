@@ -60,4 +60,5 @@ async def solve_leetcode(request: LeetCodeRequest):
 
 
 
-# Vercel will handle the server startup
+# Export app for Vercel
+handler = app
