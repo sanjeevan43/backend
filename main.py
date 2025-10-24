@@ -19,11 +19,6 @@ app.add_middleware(
 
 class LeetCodeRequest(BaseModel):
     problem: str
-    session_id: str = "default"
-
-
-
-
 
 API_KEY = os.getenv("GEMINI_API_KEY")
 API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
@@ -31,23 +26,12 @@ API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-fl
 if not API_KEY:
     raise ValueError("GEMINI_API_KEY environment variable is required")
 
-sessions = {}
-
 @app.get("/")
 async def root():
-    return {"message": "LeetCode Solver API", "endpoints": ["/solve", "/history/{session_id}"]}
-
-@app.get("/health")
-async def health():
-    return {"status": "healthy"}
+    return {"message": "LeetCode Solver API", "endpoint": "/solve"}
 
 @app.post("/solve")
 async def solve_leetcode(request: LeetCodeRequest):
-    if request.session_id not in sessions:
-        sessions[request.session_id] = []
-    
-    sessions[request.session_id].append({"role": "user", "problem": request.problem})
-    
     try:
         response = requests.post(
             API_URL,
@@ -67,7 +51,6 @@ async def solve_leetcode(request: LeetCodeRequest):
         if response.status_code == 200:
             data = response.json()
             ai_response = data["candidates"][0]["content"]["parts"][0]["text"]
-            sessions[request.session_id].append({"role": "assistant", "solution": ai_response})
             return {"response": ai_response.strip().replace("**", "").replace("*", "")}
         else:
             return {"error": f"API Error: {response.status_code}"}
@@ -75,10 +58,6 @@ async def solve_leetcode(request: LeetCodeRequest):
     except Exception as e:
         return {"error": str(e)}
 
-@app.get("/history/{session_id}")
-async def get_solution_history(session_id: str):
-    if session_id in sessions:
-        return {"session_id": session_id, "history": sessions[session_id]}
-    return {"session_id": session_id, "history": []}
+
 
 # Vercel will handle the server startup
