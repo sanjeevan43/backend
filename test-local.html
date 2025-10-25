@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>LeetCode Solver Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        textarea { width: 100%; height: 200px; margin: 10px 0; }
+        button { padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        #result { background: #f8f9fa; padding: 15px; border-radius: 5px; margin-top: 20px; white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+    <h1>LeetCode Solver Test</h1>
+    
+    <label>Problem Description:</label>
+    <textarea id="problem" placeholder="Enter your LeetCode problem here...">Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target.</textarea>
+    
+    <label>Language:</label>
+    <select id="language">
+        <option value="python">Python</option>
+        <option value="javascript">JavaScript</option>
+        <option value="java">Java</option>
+        <option value="cpp">C++</option>
+    </select>
+    
+    <br><br>
+    <button onclick="solveProblem()">Solve Problem</button>
+    
+    <div id="result"></div>
+    
+    <script>
+        async function solveProblem() {
+            const problem = document.getElementById('problem').value;
+            const language = document.getElementById('language').value;
+            const resultDiv = document.getElementById('result');
+            
+            if (!problem.trim()) {
+                resultDiv.innerHTML = 'Please enter a problem description';
+                return;
+            }
+            
+            resultDiv.innerHTML = 'Solving...';
+            
+            try {
+                const response = await fetch('http://localhost:5000/solve', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ 
+                        problem: problem,
+                        language: language 
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    resultDiv.innerHTML = data.solution;
+                } else {
+                    resultDiv.innerHTML = 'Error: ' + (data.error || 'Unknown error');
+                }
+            } catch (error) {
+                resultDiv.innerHTML = 'Error: ' + error.message;
+            }
+        }
+    </script>
+</body>
+</html>
