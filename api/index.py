@@ -2,16 +2,34 @@ from flask import Flask, request, jsonify, render_template_string
 from flask_cors import CORS
 import requests
 import os
+import logging
+from dotenv import load_dotenv
+from fallback import generate_fallback_solution
+
+load_dotenv()
 
 app = Flask(__name__)
 CORS(app)
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 @app.route("/")
 def root():
     return jsonify({
         "message": "LeetCode Solver API", 
         "endpoint": "/solve",
-        "docs": "/docs"
+        "docs": "/docs",
+        "health": "/health"
+    })
+
+@app.route("/health")
+def health_check():
+    api_key = os.getenv("GEMINI_API_KEY")
+    return jsonify({
+        "status": "healthy",
+        "api_configured": bool(api_key and api_key != "your_api_key_here" and len(api_key) > 10),
+        "fallback_available": True
     })
 
 @app.route("/docs")
@@ -104,8 +122,9 @@ def solve_leetcode():
         return jsonify({"error": "This API only solves LeetCode coding problems."}), 400
     
     API_KEY = os.getenv("GEMINI_API_KEY")
-    if not API_KEY:
-        return jsonify({"error": "API key not configured"}), 500
+    if not API_KEY or API_KEY == "your_api_key_here":
+        logger.warning("GEMINI_API_KEY not configured, using fallback solution")
+        return generate_fallback_solution(data['problem'], data.get('language', 'python'))
     
     prompt = f"""Solve this LeetCode problem with complete working Python code:
 
@@ -161,4 +180,5 @@ Explanation: [brief description]"""
             return jsonify({"error": f"API Error: {response.status_code}"}), 500
             
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        logger.error(f"API request failed: {str(e)}")
+        return generate_fallback_solution(data['problem'], data.get('language', 'python'))

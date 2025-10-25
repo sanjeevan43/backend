@@ -1,6 +1,5 @@
 const API_BASE_URLS = [
-  'http://localhost:5000',
-  'https://backend-fl5mva3dw-sanjeevans-projects-45db636c.vercel.app'
+  'http://localhost:5000'
 ];
 
 export const api = {
