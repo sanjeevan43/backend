@@ -10,20 +10,12 @@ CORS(app)
 def root():
     return jsonify({"message": "LeetCode Solver API", "endpoint": "/solve"})
 
-def is_leetcode_problem(problem):
-    leetcode_keywords = ["leetcode", "two sum", "array", "string", "linked list", "tree", "graph", "dynamic programming", "binary search", "sorting", "hash table", "stack", "queue", "heap", "trie", "backtracking", "greedy", "sliding window", "dfs", "bfs"]
-    return any(keyword in problem.lower() for keyword in leetcode_keywords)
-
 @app.route("/solve", methods=["POST"])
 def solve_leetcode():
     data = request.get_json()
     if not data or "problem" not in data:
         return jsonify({"error": "Problem field required"}), 400
     
-    problem = data["problem"]
-    
-    if not is_leetcode_problem(problem):
-        return jsonify({"error": "Only LeetCode problems are allowed"}), 400
     API_KEY = os.getenv("GEMINI_API_KEY")
     if not API_KEY:
         return jsonify({"error": "API key not configured"}), 500
@@ -37,16 +29,25 @@ def solve_leetcode():
             },
             json={
                 "contents": [{
-                    "parts": [{"text": f"Solve this LeetCode problem: {problem}"}]
+                    "parts": [{"text": f"You are an expert LeetCode problem solver. For the given problem, provide a complete working solution with:
+
+1. Problem understanding and approach
+2. Complete Python code solution (not template)
+3. Time and space complexity analysis
+4. Example walkthrough
+
+IMPORTANT: Provide actual working code, not templates or placeholders. Solve the specific problem completely.
+
+Problem: {data['problem']}"}]
                 }],
-                "generationConfig": {"maxOutputTokens": 500}
+                "generationConfig": {"maxOutputTokens": 2000, "temperature": 0.1}
             },
             timeout=30
         )
         
         if response.status_code == 200:
-            data = response.json()
-            ai_response = data["candidates"][0]["content"]["parts"][0]["text"]
+            result = response.json()
+            ai_response = result["candidates"][0]["content"]["parts"][0]["text"]
             return jsonify({"response": ai_response})
         else:
             return jsonify({"error": f"API Error: {response.status_code}"}), 500
