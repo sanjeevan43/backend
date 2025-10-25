@@ -16,7 +16,6 @@ echo.
 echo Starting Flask server...
 echo API will be available at: http://localhost:5000
 echo API docs at: http://localhost:5000/docs
-echo Health check: http://localhost:5000/health
 echo.
 
 python run_server.py

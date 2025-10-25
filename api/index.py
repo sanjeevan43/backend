@@ -2,34 +2,16 @@ from flask import Flask, request, jsonify, render_template_string
 from flask_cors import CORS
 import requests
 import os
-import logging
-from dotenv import load_dotenv
-from fallback import generate_fallback_solution
-
-load_dotenv()
 
 app = Flask(__name__)
 CORS(app)
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
 @app.route("/")
 def root():
     return jsonify({
-        "message": "LeetCode Solver API", 
+        "message": "LeetCode AI Solver", 
         "endpoint": "/solve",
-        "docs": "/docs",
-        "health": "/health"
-    })
-
-@app.route("/health")
-def health_check():
-    api_key = os.getenv("GEMINI_API_KEY")
-    return jsonify({
-        "status": "healthy",
-        "api_configured": bool(api_key and api_key != "your_api_key_here" and len(api_key) > 10),
-        "fallback_available": True
+        "docs": "/docs"
     })
 
 @app.route("/docs")
@@ -53,11 +35,11 @@ def swagger_ui():
 </head>
 <body>
     <div class="container">
-        <h1>🚀 LeetCode Solver API</h1>
+        <h1>🧠 LeetCode AI Solver</h1>
         
         <div class="endpoint">
             <h3><span class="method post">POST</span> /solve</h3>
-            <p>Solve LeetCode problems with complete Python solutions</p>
+            <p>Get complete working solutions for any LeetCode problem</p>
             
             <h4>Try it out:</h4>
             <textarea id="problemInput" placeholder="Enter your LeetCode problem here...">Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target.</textarea>
@@ -111,42 +93,37 @@ def solve_leetcode():
     if not data or "problem" not in data:
         return jsonify({"error": "Problem field required"}), 400
     
-    # Validate LeetCode problem
-    problem_text = data['problem'].lower()
-    keywords = ['array', 'string', 'tree', 'graph', 'dynamic programming', 'binary search', 
-               'sorting', 'hash table', 'stack', 'queue', 'heap', 'two pointers', 
-               'sliding window', 'backtracking', 'greedy', 'dfs', 'bfs', 'leetcode', 
-               'given', 'return', 'constraints', 'example', 'input', 'output', 'nums', 'target']
-    
-    if not any(keyword in problem_text for keyword in keywords):
-        return jsonify({"error": "This API only solves LeetCode coding problems."}), 400
+    problem_text = data['problem'].strip()
+    if len(problem_text) < 10:
+        return jsonify({"error": "Please provide a more detailed problem description."}), 400
     
     API_KEY = os.getenv("GEMINI_API_KEY")
-    if not API_KEY or API_KEY == "your_api_key_here":
-        logger.warning("GEMINI_API_KEY not configured, using fallback solution")
-        return generate_fallback_solution(data['problem'], data.get('language', 'python'))
+    if not API_KEY:
+        return jsonify({"error": "API key not configured"}), 500
     
-    prompt = f"""Solve this LeetCode problem with complete working Python code:
+    prompt = f"""You are an expert LeetCode problem solver. Provide a COMPLETE, WORKING Python solution for this problem.
 
 {data['problem']}
 
-Provide:
-1. Complete working solution (class Solution format)
-2. Time and space complexity
-3. Brief explanation
+REQUIREMENTS:
+1. Provide COMPLETE, EXECUTABLE code that passes ALL test cases
+2. Use proper LeetCode class format with correct method names
+3. Handle ALL edge cases
+4. Use optimal algorithms
+5. Write production-ready code
 
-Format:
+Response format:
 ```python
 class Solution:
     def methodName(self, params):
-        # Complete implementation
+        # Complete working implementation
         return result
 ```
 
-Time: O(...)
-Space: O(...)
+Time Complexity: O(...)
+Space Complexity: O(...)
 
-Explanation: [brief description]"""
+Explanation: [Step-by-step explanation]"""
     
     try:
         response = requests.post(
@@ -160,7 +137,7 @@ Explanation: [brief description]"""
                     "parts": [{"text": prompt}]
                 }],
                 "generationConfig": {
-                    "maxOutputTokens": 1500,
+                    "maxOutputTokens": 2000,
                     "temperature": 0.1,
                     "topP": 0.8
                 }
@@ -180,5 +157,4 @@ Explanation: [brief description]"""
             return jsonify({"error": f"API Error: {response.status_code}"}), 500
             
     except Exception as e:
-        logger.error(f"API request failed: {str(e)}")
-        return generate_fallback_solution(data['problem'], data.get('language', 'python'))
+        return jsonify({"error": str(e)}), 500
