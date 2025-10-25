@@ -29,18 +29,9 @@ def solve_leetcode():
             },
             json={
                 "contents": [{
-                    "parts": [{"text": f"You are an expert LeetCode problem solver. For the given problem, provide a complete working solution with:
-
-1. Problem understanding and approach
-2. Complete Python code solution (not template)
-3. Time and space complexity analysis
-4. Example walkthrough
-
-IMPORTANT: Provide actual working code, not templates or placeholders. Solve the specific problem completely.
-
-Problem: {data['problem']}"}]
+                    "parts": [{"text": f"SOLVE THIS SPECIFIC LEETCODE PROBLEM COMPLETELY:\n\n{data['problem']}\n\nProvide:\n1. Detailed algorithm explanation\n2. Complete working Python code with proper function signature\n3. Step-by-step solution walkthrough\n4. Time & Space complexity\n5. Test cases with expected output\n\nDO NOT give generic templates. Write the actual solution code that solves this exact problem. Be specific to the problem requirements."}]
                 }],
-                "generationConfig": {"maxOutputTokens": 2000, "temperature": 0.1}
+                "generationConfig": {"maxOutputTokens": 2000, "temperature": 0.3}
             },
             timeout=30
         )
@@ -48,7 +39,7 @@ Problem: {data['problem']}"}]
         if response.status_code == 200:
             result = response.json()
             ai_response = result["candidates"][0]["content"]["parts"][0]["text"]
-            return jsonify({"response": ai_response})
+            return jsonify({"solution": ai_response, "problem": data['problem']})
         else:
             return jsonify({"error": f"API Error: {response.status_code}"}), 500
             
