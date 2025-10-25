@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template_string
 from flask_cors import CORS
 import requests
 import os
@@ -11,8 +11,92 @@ def root():
     return jsonify({
         "message": "LeetCode Problems Only - Coding Challenge Solver API", 
         "endpoint": "/solve",
-        "usage": "Send LeetCode problems only. Other queries will be rejected."
+        "usage": "Send LeetCode problems only. Other queries will be rejected.",
+        "docs": "/docs"
     })
+
+@app.route("/docs")
+def swagger_ui():
+    return render_template_string('''
+<!DOCTYPE html>
+<html>
+<head>
+    <title>LeetCode Solver API</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        .container { max-width: 800px; }
+        .endpoint { background: #f5f5f5; padding: 20px; margin: 20px 0; border-radius: 5px; }
+        .method { background: #007bff; color: white; padding: 5px 10px; border-radius: 3px; }
+        .post { background: #28a745; }
+        pre { background: #f8f9fa; padding: 15px; border-radius: 5px; overflow-x: auto; }
+        button { background: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; }
+        textarea { width: 100%; height: 100px; margin: 10px 0; }
+        #result { background: #f8f9fa; padding: 15px; border-radius: 5px; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 LeetCode Solver API Documentation</h1>
+        
+        <div class="endpoint">
+            <h3><span class="method">GET</span> /</h3>
+            <p>Get API information</p>
+        </div>
+        
+        <div class="endpoint">
+            <h3><span class="method post">POST</span> /solve</h3>
+            <p>Solve LeetCode problems with complete Python solutions</p>
+            
+            <h4>Request Body:</h4>
+            <pre>{
+  "problem": "Your LeetCode problem description here"
+}</pre>
+            
+            <h4>Try it out:</h4>
+            <textarea id="problemInput" placeholder="Enter your LeetCode problem here...">Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target.</textarea>
+            <br>
+            <button onclick="solveProblem()">Solve Problem</button>
+            
+            <div id="result"></div>
+        </div>
+    </div>
+    
+    <script>
+        async function solveProblem() {
+            const problem = document.getElementById('problemInput').value;
+            const resultDiv = document.getElementById('result');
+            
+            if (!problem.trim()) {
+                resultDiv.innerHTML = '<p style="color: red;">Please enter a problem description</p>';
+                return;
+            }
+            
+            resultDiv.innerHTML = '<p>Solving...</p>';
+            
+            try {
+                const response = await fetch('/solve', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ problem: problem })
+                });
+                
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    resultDiv.innerHTML = `<h4>Solution:</h4><pre>${data.solution}</pre>`;
+                } else {
+                    resultDiv.innerHTML = `<p style="color: red;">Error: ${data.error}</p>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
+            }
+        }
+    </script>
+</body>
+</html>
+    ''')
 
 @app.route("/solve", methods=["POST"])
 def solve_leetcode():
