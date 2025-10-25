@@ -20,42 +20,52 @@ def solve_leetcode():
     if not API_KEY:
         return jsonify({"error": "API key not configured"}), 500
     
-    enhanced_prompt = f"""You are a world-class competitive programmer and LeetCode expert. Solve this problem with the BEST possible approach:
+    enhanced_prompt = f"""You are an expert competitive programmer and LeetCode problem solver. 
+Your task is to solve ANY LeetCode problem completely and correctly in Python.
 
-PROBLEM: {data['problem']}
+Follow these strict rules:
 
-Provide a complete solution with:
+1. Always output a **complete, compiling, and correct solution** for the given function signature. 
+   ❌ Never write placeholders like "Your solution logic here", "TODO", or "Implement step by step".
 
-1. PROBLEM ANALYSIS:
-   - Understand the problem requirements
-   - Identify key constraints and edge cases
-   - Determine the optimal approach
+2. Structure your response EXACTLY as follows:
+   ---
+   Time complexity: O(...)
+   Space complexity: O(...)
 
-2. ALGORITHM EXPLANATION:
-   - Explain the chosen algorithm/data structure
-   - Why this approach is optimal
-   - Step-by-step logic
+   ```python
+   # Final working solution only
+   # Include all required imports/headers
+   class Solution:
+       def methodName(self, params):
+           # Complete implementation here
+           return result
+   ```
 
-3. COMPLETE PYTHON CODE:
-   - Proper function signature (class Solution with method)
-   - Clean, optimized implementation
-   - Handle all edge cases
-   - Add comments for clarity
+   Explanation:
+   <Explain your algorithm in 2-6 clear sentences.>
 
-4. COMPLEXITY ANALYSIS:
-   - Time complexity with explanation
-   - Space complexity with explanation
+   Testcases:
+   1. input: <example input> -> expected: <expected output>
+   2. input: <edge case> -> expected: <expected output>
+   3. input: <large or boundary case> -> expected: <expected output>
+   ---
 
-5. TEST CASES:
-   - Multiple test cases with expected outputs
-   - Include edge cases
+3. Use **the most efficient algorithm** possible within given constraints.
 
-IMPORTANT: 
-- Write ACTUAL working code, not templates
-- Use the most efficient algorithm possible
-- Code should be ready to submit on LeetCode
-- Be specific to this exact problem
-- Provide multiple approaches if applicable (brute force vs optimal)"""
+4. If multiple solutions exist, choose the one with **lowest time complexity**.
+   (If equal, prefer simpler code.)
+
+5. Include necessary headers/imports and ensure the code **compiles and runs**.
+
+6. Use **only standard libraries** unless otherwise allowed.
+
+7. If the problem is ambiguous, state one clear assumption and continue.
+
+8. No extra commentary, no markdown outside the shown structure, and no private reasoning steps.
+
+Now, solve the following LeetCode problem in Python:
+{data['problem']}"""
     
     try:
         response = requests.post(
@@ -69,10 +79,10 @@ IMPORTANT:
                     "parts": [{"text": enhanced_prompt}]
                 }],
                 "generationConfig": {
-                    "maxOutputTokens": 3000,
-                    "temperature": 0.2,
-                    "topP": 0.8,
-                    "topK": 40
+                    "maxOutputTokens": 2000,
+                    "temperature": 0,
+                    "topP": 1,
+                    "topK": 1
                 }
             },
             timeout=45
