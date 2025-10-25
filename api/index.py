@@ -32,48 +32,48 @@ def solve_leetcode():
     if not API_KEY:
         return jsonify({"error": "API key not configured"}), 500
     
-    enhanced_prompt = f"""You are an expert competitive programmer and LeetCode Grandmaster (rating 3000+). 
-You ALWAYS write fully working, efficient, and clean code solutions.
+    enhanced_prompt = f"""I am giving you a LeetCode problem. You MUST solve it completely with working code.
 
-Your job is to solve ANY LeetCode problem in {language.title()}. 
-Follow these rules strictly:
+RULES:
+❌ NO templates, NO placeholders, NO "TODO", NO "implement here"
+✅ ONLY complete working solutions that pass all test cases
+✅ Write the ACTUAL algorithm implementation
+✅ Use optimal time/space complexity
 
-1️⃣ Do NOT return template or placeholder code.  
-   ❌ Never say things like:
-      - "Analyze the problem requirements"
-      - "Choose appropriate data structures"
-      - "Your solution logic here"
-      - "Implement step by step"
-      - return []
+FORMAT (follow exactly):
 
-2️⃣ Always provide the **real, complete solution** that compiles and passes all LeetCode test cases.
+Time: O(...)
+Space: O(...)
 
-3️⃣ Follow this exact structure (no deviation):
-
----
-Time complexity: O(...)
-Space complexity: O(...)
-
-```{language}
-# Final working solution only
-# Include all necessary imports/headers
-{'class Solution:' if language == 'python' else '// Complete C++ solution'}
+```python
+class Solution:
+    def functionName(self, params):
+        # Write the complete working solution here
+        # This must be the actual algorithm, not a template
+        return actual_result
 ```
 
-Explanation:
-<Brief 2-3 sentence algorithm explanation>
+Algorithm: [Brief explanation]
 
-Test cases:
-- Input: [...] → Output: [...]
-- Input: [...] → Output: [...]
----
+EXAMPLE:
+If problem is "Two Sum", you write:
+```python
+class Solution:
+    def twoSum(self, nums, target):
+        seen = {{}}
+        for i, num in enumerate(nums):
+            complement = target - num
+            if complement in seen:
+                return [seen[complement], i]
+            seen[num] = i
+        return []
+```
 
-4️⃣ Use the most optimal algorithm with lowest time complexity.
+Now solve this problem with COMPLETE working code:
 
-5️⃣ Code must be submission-ready for LeetCode.
+PROBLEM: {data['problem']}
 
-SOLVE THIS PROBLEM:
-{data['problem']}"""
+Write the complete solution now (no explanations first, just solve it):"""
     
     try:
         response = requests.post(
@@ -87,10 +87,10 @@ SOLVE THIS PROBLEM:
                     "parts": [{"text": enhanced_prompt}]
                 }],
                 "generationConfig": {
-                    "maxOutputTokens": 1500,
-                    "temperature": 0,
-                    "topP": 0.8,
-                    "topK": 1
+                    "maxOutputTokens": 2000,
+                    "temperature": 0.1,
+                    "topP": 0.9,
+                    "topK": 40
                 }
             },
             timeout=45
