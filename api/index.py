@@ -6,18 +6,11 @@ import os
 app = Flask(__name__)
 CORS(app)
 
-# Import C++ solver
-from cpp import solve_cpp_leetcode
-app.add_url_rule('/cpp', 'solve_cpp_leetcode', solve_cpp_leetcode, methods=['POST'])
-
 @app.route("/")
 def root():
     return jsonify({
-        "message": "Advanced LeetCode Solver API", 
-        "endpoints": {
-            "/solve": "Multi-language solver (Python/C++/Java)",
-            "/cpp": "Specialized C++ solver"
-        }
+        "message": "LeetCode Solver API", 
+        "endpoint": "/solve"
     })
 
 @app.route("/solve", methods=["POST"])
@@ -26,54 +19,31 @@ def solve_leetcode():
     if not data or "problem" not in data:
         return jsonify({"error": "Problem field required"}), 400
     
-    language = data.get("language", "python").lower()
-    
     API_KEY = os.getenv("GEMINI_API_KEY")
     if not API_KEY:
         return jsonify({"error": "API key not configured"}), 500
     
-    enhanced_prompt = f"""I am giving you a LeetCode problem. You MUST solve it completely with working code.
+    prompt = f"""Solve this LeetCode problem completely with working Python code:
 
-RULES:
-❌ NO templates, NO placeholders, NO "TODO", NO "implement here"
-✅ ONLY complete working solutions that pass all test cases
-✅ Write the ACTUAL algorithm implementation
-✅ Use optimal time/space complexity
+{data['problem']}
 
-FORMAT (follow exactly):
+Provide:
+1. Time and space complexity
+2. Complete working Python solution (class Solution format)
+3. Brief explanation
 
+Format:
 Time: O(...)
 Space: O(...)
 
 ```python
 class Solution:
-    def functionName(self, params):
-        # Write the complete working solution here
-        # This must be the actual algorithm, not a template
-        return actual_result
+    def methodName(self, params):
+        # Complete implementation
+        return result
 ```
 
-Algorithm: [Brief explanation]
-
-EXAMPLE:
-If problem is "Two Sum", you write:
-```python
-class Solution:
-    def twoSum(self, nums, target):
-        seen = {{}}
-        for i, num in enumerate(nums):
-            complement = target - num
-            if complement in seen:
-                return [seen[complement], i]
-            seen[num] = i
-        return []
-```
-
-Now solve this problem with COMPLETE working code:
-
-PROBLEM: {data['problem']}
-
-Write the complete solution now (no explanations first, just solve it):"""
+Explanation: [brief description]"""
     
     try:
         response = requests.post(
@@ -84,16 +54,15 @@ Write the complete solution now (no explanations first, just solve it):"""
             },
             json={
                 "contents": [{
-                    "parts": [{"text": enhanced_prompt}]
+                    "parts": [{"text": prompt}]
                 }],
                 "generationConfig": {
-                    "maxOutputTokens": 2000,
+                    "maxOutputTokens": 1500,
                     "temperature": 0.1,
-                    "topP": 0.9,
-                    "topK": 40
+                    "topP": 0.9
                 }
             },
-            timeout=45
+            timeout=30
         )
         
         if response.status_code == 200:
@@ -102,7 +71,6 @@ Write the complete solution now (no explanations first, just solve it):"""
             return jsonify({
                 "solution": ai_response,
                 "problem": data['problem'],
-                "language": language,
                 "status": "success"
             })
         else:
@@ -113,4 +81,4 @@ Write the complete solution now (no explanations first, just solve it):"""
 
 @app.route("/health", methods=["GET"])
 def health_check():
-    return jsonify({"status": "healthy", "service": "LeetCode Solver API"})
+    return jsonify({"status": "healthy"})
