@@ -9,8 +9,9 @@ CORS(app)
 @app.route("/")
 def root():
     return jsonify({
-        "message": "LeetCode Solver API", 
-        "endpoint": "/solve"
+        "message": "LeetCode Problems Only - Coding Challenge Solver API", 
+        "endpoint": "/solve",
+        "usage": "Send LeetCode problems only. Other queries will be rejected."
     })
 
 @app.route("/solve", methods=["POST"])
@@ -19,18 +20,29 @@ def solve_leetcode():
     if not data or "problem" not in data:
         return jsonify({"error": "Problem field required"}), 400
     
+    # Validate it's a LeetCode problem
+    problem_text = data['problem'].lower()
+    leetcode_keywords = ['array', 'string', 'linked list', 'tree', 'graph', 'dynamic programming', 
+                        'binary search', 'sorting', 'hash table', 'stack', 'queue', 'heap', 
+                        'two pointers', 'sliding window', 'backtracking', 'greedy', 'dfs', 'bfs',
+                        'leetcode', 'given', 'return', 'constraints', 'example', 'input', 'output']
+    
+    if not any(keyword in problem_text for keyword in leetcode_keywords):
+        return jsonify({"error": "This API only solves LeetCode coding problems. Please provide a valid LeetCode problem."}), 400
+    
     API_KEY = os.getenv("GEMINI_API_KEY")
     if not API_KEY:
         return jsonify({"error": "API key not configured"}), 500
     
-    prompt = f"""Solve this LeetCode problem completely with working Python code:
+    prompt = f"""You are a LeetCode expert. Solve ONLY this specific LeetCode problem with complete working code:
 
 {data['problem']}
 
-Provide:
-1. Time and space complexity
-2. Complete working Python solution (class Solution format)
-3. Brief explanation
+RULES:
+- ONLY solve LeetCode algorithmic problems
+- Provide complete working Python solution
+- Use proper LeetCode class Solution format
+- No templates or placeholders
 
 Format:
 Time: O(...)
@@ -39,11 +51,11 @@ Space: O(...)
 ```python
 class Solution:
     def methodName(self, params):
-        # Complete implementation
+        # Complete working implementation
         return result
 ```
 
-Explanation: [brief description]"""
+Explanation: [brief algorithm description]"""
     
     try:
         response = requests.post(
