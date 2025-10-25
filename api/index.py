@@ -6,15 +6,27 @@ import os
 app = Flask(__name__)
 CORS(app)
 
+# Import C++ solver
+from cpp import solve_cpp_leetcode
+app.add_url_rule('/cpp', 'solve_cpp_leetcode', solve_cpp_leetcode, methods=['POST'])
+
 @app.route("/")
 def root():
-    return jsonify({"message": "Advanced LeetCode Solver API", "endpoint": "/solve"})
+    return jsonify({
+        "message": "Advanced LeetCode Solver API", 
+        "endpoints": {
+            "/solve": "Multi-language solver (Python/C++/Java)",
+            "/cpp": "Specialized C++ solver"
+        }
+    })
 
 @app.route("/solve", methods=["POST"])
 def solve_leetcode():
     data = request.get_json()
     if not data or "problem" not in data:
         return jsonify({"error": "Problem field required"}), 400
+    
+    language = data.get("language", "python").lower()
     
     API_KEY = os.getenv("GEMINI_API_KEY")
     if not API_KEY:
@@ -23,7 +35,7 @@ def solve_leetcode():
     enhanced_prompt = f"""You are an expert competitive programmer and LeetCode Grandmaster (rating 3000+). 
 You ALWAYS write fully working, efficient, and clean code solutions.
 
-Your job is to solve ANY LeetCode problem in Python. 
+Your job is to solve ANY LeetCode problem in {language.title()}. 
 Follow these rules strictly:
 
 1️⃣ Do NOT return template or placeholder code.  
@@ -42,13 +54,10 @@ Follow these rules strictly:
 Time complexity: O(...)
 Space complexity: O(...)
 
-```python
+```{language}
 # Final working solution only
 # Include all necessary imports/headers
-class Solution:
-    def methodName(self, params):
-        # Complete working implementation
-        pass
+{'class Solution:' if language == 'python' else '// Complete C++ solution'}
 ```
 
 Explanation:
@@ -80,7 +89,7 @@ SOLVE THIS PROBLEM:
                 "generationConfig": {
                     "maxOutputTokens": 1500,
                     "temperature": 0,
-                    "topP": 0.95,
+                    "topP": 0.8,
                     "topK": 1
                 }
             },
@@ -93,6 +102,7 @@ SOLVE THIS PROBLEM:
             return jsonify({
                 "solution": ai_response,
                 "problem": data['problem'],
+                "language": language,
                 "status": "success"
             })
         else:
