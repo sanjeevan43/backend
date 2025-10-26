@@ -1,97 +1,108 @@
 from flask import jsonify
-from .extended_fallback import *
 
 def generate_fallback_solution(problem, language='python'):
     """Generate solution when external API fails"""
     problem_lower = problem.lower()
     
-    # Detect problem type and provide complete working solutions
-    if 'two sum' in problem_lower or ('target' in problem_lower and 'sum' in problem_lower and 'array' in problem_lower):
+    # Detect problem type
+    if 'two sum' in problem_lower or ('target' in problem_lower and 'sum' in problem_lower):
         return get_two_sum_solution(language)
     elif 'palindrome' in problem_lower:
         return get_palindrome_solution(language)
-    elif 'valid parentheses' in problem_lower or 'brackets' in problem_lower or 'parentheses' in problem_lower:
+    elif 'valid parentheses' in problem_lower or 'brackets' in problem_lower:
         return get_parentheses_solution(language)
     elif 'fibonacci' in problem_lower:
         return get_fibonacci_solution(language)
-    elif 'reverse' in problem_lower and ('string' in problem_lower or 'array' in problem_lower or 'linked list' in problem_lower):
+    elif 'reverse' in problem_lower and ('string' in problem_lower or 'array' in problem_lower):
         return get_reverse_solution(language)
     elif 'maximum subarray' in problem_lower or 'kadane' in problem_lower:
         return get_max_subarray_solution(language)
-    elif 'binary search' in problem_lower or ('search' in problem_lower and 'sorted' in problem_lower):
-        return get_binary_search_solution(language)
-    elif 'merge' in problem_lower and ('sorted' in problem_lower or 'array' in problem_lower):
-        return get_merge_solution(language)
-    elif 'climbing stairs' in problem_lower or ('stairs' in problem_lower and 'ways' in problem_lower):
-        return get_climbing_stairs_solution(language)
-    elif 'best time' in problem_lower and 'stock' in problem_lower:
-        return get_stock_solution(language)
-    elif 'contains duplicate' in problem_lower or ('duplicate' in problem_lower and 'array' in problem_lower):
-        return get_duplicate_solution(language)
-    elif 'product' in problem_lower and 'array' in problem_lower and 'except' in problem_lower:
-        return get_product_except_self_solution(language)
-    elif 'minimum' in problem_lower and 'rotated' in problem_lower:
-        return get_min_rotated_solution(language)
-    elif 'container' in problem_lower and 'water' in problem_lower:
-        return get_container_water_solution(language)
-    elif '3sum' in problem_lower or 'three sum' in problem_lower:
-        return get_three_sum_solution(language)
-    elif 'longest substring' in problem_lower and 'without repeating' in problem_lower:
-        return get_longest_substring_solution(language)
     else:
-        # For unrecognized problems, provide a helpful template
         return get_general_solution(language)
 
 def get_two_sum_solution(language):
     solutions = {
-        'python': '''```python
-class Solution:
-    def twoSum(self, nums, target):
+        'python': '''class Solution:
+    def twoSum(self, nums: List[int], target: int) -> List[int]:
         seen = {}
         for i, num in enumerate(nums):
             complement = target - num
             if complement in seen:
                 return [seen[complement], i]
             seen[num] = i
-        return []
-```
-
-Time Complexity: O(n)
-Space Complexity: O(n)
-
-Explanation: Use hash map to store numbers and their indices. For each number, check if its complement exists in the hash map. Return indices when complement is found.'''
+        return []''',
+        'javascript': '''var twoSum = function(nums, target) {
+    const seen = new Map();
+    for (let i = 0; i < nums.length; i++) {
+        const complement = target - nums[i];
+        if (seen.has(complement)) {
+            return [seen.get(complement), i];
+        }
+        seen.set(nums[i], i);
+    }
+    return [];
+};''',
+        'java': '''class Solution {
+    public int[] twoSum(int[] nums, int target) {
+        Map<Integer, Integer> seen = new HashMap<>();
+        for (int i = 0; i < nums.length; i++) {
+            int complement = target - nums[i];
+            if (seen.containsKey(complement)) {
+                return new int[]{seen.get(complement), i};
+            }
+            seen.put(nums[i], i);
+        }
+        return new int[]{};
+    }
+}''',
+        'cpp': '''class Solution {
+public:
+    vector<int> twoSum(vector<int>& nums, int target) {
+        unordered_map<int, int> seen;
+        for (int i = 0; i < nums.size(); i++) {
+            int complement = target - nums[i];
+            if (seen.find(complement) != seen.end()) {
+                return {seen[complement], i};
+            }
+            seen[nums[i]] = i;
+        }
+        return {};
+    }
+};'''
     }
     return jsonify({"solution": solutions.get(language, solutions['python']), "status": "success"})
 
 def get_palindrome_solution(language):
     solutions = {
-        'python': '''```python
-class Solution:
-    def isPalindrome(self, s):
-        # Clean string: keep only alphanumeric and convert to lowercase
-        cleaned = ''.join(char.lower() for char in s if char.isalnum())
-        left, right = 0, len(cleaned) - 1
-        
+        'python': '''class Solution:
+    def isPalindrome(self, s: str) -> bool:
+        s = ''.join(c.lower() for c in s if c.isalnum())
+        left, right = 0, len(s) - 1
         while left < right:
-            if cleaned[left] != cleaned[right]:
+            if s[left] != s[right]:
                 return False
             left += 1
             right -= 1
-        return True
-```
-
-Time Complexity: O(n)
-Space Complexity: O(n)
-
-Explanation: Clean the string by keeping only alphanumeric characters, then use two pointers to compare characters from both ends.'''
+        return True''',
+        'javascript': '''var isPalindrome = function(s) {
+    s = s.toLowerCase().replace(/[^a-z0-9]/g, '');
+    let left = 0, right = s.length - 1;
+    while (left < right) {
+        if (s[left] !== s[right]) {
+            return false;
+        }
+        left++;
+        right--;
+    }
+    return true;
+};'''
     }
     return jsonify({"solution": solutions.get(language, solutions['python']), "status": "success"})
 
 def get_parentheses_solution(language):
     solutions = {
-        'python': '''```python
-class Solution:
-    def isValid(self, s):
+        'python': '''class Solution:
+    def isValid(self, s: str) -> bool:
         stack = []
         mapping = {')': '(', '}': '{', ']': '['}
         
@@ -102,62 +113,109 @@ class Solution:
             else:
                 stack.append(char)
         
-        return len(stack) == 0
-```
-
-Time Complexity: O(n)
-Space Complexity: O(n)
-
-Explanation: Use stack to match opening and closing brackets. Push opening brackets, pop and validate when encountering closing brackets.'''
+        return not stack''',
+        'javascript': '''var isValid = function(s) {
+    const stack = [];
+    const mapping = {')': '(', '}': '{', ']': '['};
+    
+    for (let char of s) {
+        if (char in mapping) {
+            if (!stack.length || stack.pop() !== mapping[char]) {
+                return false;
+            }
+        } else {
+            stack.push(char);
+        }
+    }
+    
+    return stack.length === 0;
+};'''
     }
     return jsonify({"solution": solutions.get(language, solutions['python']), "status": "success"})
 
 def get_fibonacci_solution(language):
     solutions = {
-        'python': '''```python
-class Solution:
-    def fib(self, n):
+        'python': '''class Solution:
+    def fib(self, n: int) -> int:
         if n <= 1:
             return n
-        
         a, b = 0, 1
-        for i in range(2, n + 1):
+        for _ in range(2, n + 1):
             a, b = b, a + b
-        
-        return b
-```
+        return b''',
+        'javascript': '''var fib = function(n) {
+    if (n <= 1) return n;
+    let a = 0, b = 1;
+    for (let i = 2; i <= n; i++) {
+        [a, b] = [b, a + b];
+    }
+    return b;
+};'''
+    }
+    return jsonify({"solution": solutions.get(language, solutions['python']), "status": "success"})
 
-Time Complexity: O(n)
-Space Complexity: O(1)
+def get_reverse_solution(language):
+    solutions = {
+        'python': '''class Solution:
+    def reverseString(self, s: List[str]) -> None:
+        left, right = 0, len(s) - 1
+        while left < right:
+            s[left], s[right] = s[right], s[left]
+            left += 1
+            right -= 1''',
+        'javascript': '''var reverseString = function(s) {
+    let left = 0, right = s.length - 1;
+    while (left < right) {
+        [s[left], s[right]] = [s[right], s[left]];
+        left++;
+        right--;
+    }
+};'''
+    }
+    return jsonify({"solution": solutions.get(language, solutions['python']), "status": "success"})
 
-Explanation: Iterative approach using two variables to calculate Fibonacci numbers without recursion overhead.'''
+def get_max_subarray_solution(language):
+    solutions = {
+        'python': '''class Solution:
+    def maxSubArray(self, nums: List[int]) -> int:
+        max_sum = current_sum = nums[0]
+        for num in nums[1:]:
+            current_sum = max(num, current_sum + num)
+            max_sum = max(max_sum, current_sum)
+        return max_sum''',
+        'javascript': '''var maxSubArray = function(nums) {
+    let maxSum = nums[0];
+    let currentSum = nums[0];
+    
+    for (let i = 1; i < nums.length; i++) {
+        currentSum = Math.max(nums[i], currentSum + nums[i]);
+        maxSum = Math.max(maxSum, currentSum);
+    }
+    
+    return maxSum;
+};'''
     }
     return jsonify({"solution": solutions.get(language, solutions['python']), "status": "success"})
 
 def get_general_solution(language):
     solutions = {
-        'python': '''```python
-class Solution:
-    def solve(self, data):
-        # General LeetCode problem solving template
-        # Step 1: Understand the problem requirements
-        # Step 2: Choose appropriate data structures
-        # Step 3: Implement the algorithm
+        'python': '''class Solution:
+    def solve(self, input_data):
+        # Copy this code to LeetCode
+        # Replace method name and parameters as needed
         
         result = []
+        # Your solution logic here
         
-        # Example: Basic array processing
-        if isinstance(data, list):
-            for item in data:
-                # Process each item
-                result.append(item)
-        
-        return result
-```
-
-Time Complexity: O(n)
-Space Complexity: O(n)
-
-Explanation: This is a general template for LeetCode problems. Modify the logic based on your specific problem requirements. The solution includes proper error handling and follows LeetCode conventions.'''
+        return result''',
+        'javascript': '''var solve = function(inputData) {
+    // Copy this code to LeetCode
+    // Replace function name and parameters as needed
+    
+    let result = [];
+    // Your solution logic here
+    
+    return result;
+};'''
     }
     return jsonify({"solution": solutions.get(language, solutions['python']), "status": "success"})
