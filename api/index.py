@@ -4,39 +4,35 @@ import requests
 import os
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, origins=["http://localhost:5173"])
 
 @app.route("/")
 def root():
-    return jsonify({"message": "LeetCode AI Solver", "endpoint": "/solve"})
-
-@app.route("/health")
-def health():
-    return jsonify({"status": "healthy"})
+    return jsonify({"message": "LeetCode AI Solver API", "status": "online"})
 
 @app.route("/solve", methods=["POST"])
 def solve_leetcode():
-    data = request.get_json()
-    if not data or "problem" not in data:
-        return jsonify({"error": "Problem field required"}), 400
-    
-    problem_text = data['problem'].strip()
-    if len(problem_text) < 10:
-        return jsonify({"error": "Please provide a more detailed problem description."}), 400
-    
-    language = data.get('language', 'python')
-    API_KEY = os.getenv("GEMINI_API_KEY")
-    
-    if not API_KEY:
-        return jsonify({"error": "API key not configured"}), 500
-    
-    prompt = f"""Provide ONLY the {language} code for LeetCode:
+    try:
+        data = request.get_json()
+        if not data or "problem" not in data:
+            return jsonify({"error": "Problem field required"}), 400
+        
+        problem_text = data['problem'].strip()
+        if len(problem_text) < 10:
+            return jsonify({"error": "Please provide a more detailed problem description."}), 400
+        
+        language = data.get('language', 'python')
+        API_KEY = os.getenv("GEMINI_API_KEY")
+        
+        if not API_KEY:
+            return jsonify({"error": "API key not configured"}), 500
+        
+        prompt = f"""Provide ONLY the {language} code for this LeetCode problem:
 
 {problem_text}
 
-Return ONLY the code without markdown or explanations."""
-    
-    try:
+Return ONLY the code without markdown formatting or explanations."""
+        
         response = requests.post(
             "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent",
             headers={"Content-Type": "application/json", "X-goog-api-key": API_KEY},
@@ -57,3 +53,7 @@ Return ONLY the code without markdown or explanations."""
             
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+if __name__ == "__main__":
+    port = int(os.getenv('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=True)
