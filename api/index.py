@@ -4,7 +4,7 @@ import requests
 import os
 
 app = Flask(__name__)
-CORS(app, origins=["http://localhost:5173"])
+CORS(app, origins=["http://localhost:5173", "http://127.0.0.1:5173"], supports_credentials=True)
 
 @app.route("/")
 def root():
@@ -18,8 +18,8 @@ def solve_leetcode():
             return jsonify({"error": "Problem field required"}), 400
         
         problem_text = data['problem'].strip()
-        if len(problem_text) < 10:
-            return jsonify({"error": "Please provide a more detailed problem description."}), 400
+        if len(problem_text) < 3:
+            return jsonify({"error": "Please provide a problem description."}), 400
         
         language = data.get('language', 'python')
         API_KEY = os.getenv("GEMINI_API_KEY")
