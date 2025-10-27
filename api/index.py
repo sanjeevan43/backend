@@ -2,7 +2,6 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import requests
 import os
-from fallback import generate_fallback_solution
 
 app = Flask(__name__)
 CORS(app)
@@ -28,7 +27,7 @@ def solve_leetcode():
     
     API_KEY = os.getenv("GEMINI_API_KEY")
     if not API_KEY:
-        return generate_fallback_solution(problem_text, language)
+        return jsonify({"error": "API key not configured"}), 500
     
     prompt = f"""Provide ONLY the {language} code that can be directly copied to LeetCode:
 
@@ -71,7 +70,7 @@ Provide ONLY the code:"""
                 "status": "success"
             })
         else:
-            return generate_fallback_solution(problem_text, language)
+            return jsonify({"error": f"API Error: {response.status_code}"}), 500
             
     except Exception as e:
-        return generate_fallback_solution(problem_text, language)
+        return jsonify({"error": str(e)}), 500
