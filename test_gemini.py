@@ -4,7 +4,7 @@ import os
 API_KEY = "AIzaSyBd2jvMtrY4izfOfXD3NZReZtPUtyGQzU4"
 
 def test_gemini():
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={API_KEY}"
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={API_KEY}"
     
     payload = {
         "contents": [{
