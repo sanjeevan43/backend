@@ -4,11 +4,18 @@ import requests
 import os
 
 app = Flask(__name__)
-CORS(app, origins="*", methods=["GET", "POST", "OPTIONS"], allow_headers=["Content-Type"])
+CORS(app)
 
 @app.route("/")
 def root():
     return jsonify({"message": "LeetCode AI Solver API", "status": "online"})
+
+@app.after_request
+def after_request(response):
+    response.headers.add('Access-Control-Allow-Origin', '*')
+    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
+    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+    return response
 
 @app.route("/solve", methods=["POST"])
 def solve_leetcode():
