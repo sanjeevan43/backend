@@ -15,7 +15,7 @@ def root():
             "/solve": "POST - Solve with code + explanation",
             "/explain": "POST - Get detailed explanation only"
         },
-        "languages": ["python", "javascript", "java", "cpp"]
+        "languages": ["python", "javascript", "java", "cpp", "c", "csharp", "go", "rust", "kotlin", "swift", "php", "ruby", "scala", "typescript", "dart", "r", "matlab", "perl", "lua", "haskell", "clojure", "elixir", "fsharp", "vb"]
     })
 
 @app.after_request
@@ -62,6 +62,11 @@ def solve():
     
     problem = data['problem'].strip()
     language = data.get('language', 'python')
+    
+    supported_languages = ['python', 'javascript', 'java', 'cpp', 'c', 'csharp', 'go', 'rust', 'kotlin', 'swift', 'php', 'ruby', 'scala', 'typescript', 'dart', 'r', 'matlab', 'perl', 'lua', 'haskell', 'clojure', 'elixir', 'fsharp', 'vb']
+    
+    if language not in supported_languages:
+        return jsonify({"error": f"Unsupported language. Supported: {', '.join(supported_languages[:10])}..."}), 400
     
     if len(problem) < 5:
         return jsonify({"error": "Problem too short"}), 400
