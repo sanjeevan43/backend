@@ -33,25 +33,37 @@ def clean_code(text):
 def call_gemini(prompt):
     API_KEY = os.getenv("GEMINI_API_KEY")
     if not API_KEY:
+        print("No API key found")
         return None
     
     try:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={API_KEY}"
+        
+        payload = {
+            "contents": [{
+                "parts": [{"text": prompt}]
+            }]
+        }
+        
         response = requests.post(
-            "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent",
-            headers={"Content-Type": "application/json", "X-goog-api-key": API_KEY},
-            json={
-                "contents": [{"parts": [{"text": prompt}]}],
-                "generationConfig": {"maxOutputTokens": 1500, "temperature": 0.1}
-            },
-            timeout=15
+            url,
+            headers={"Content-Type": "application/json"},
+            json=payload,
+            timeout=30
         )
+        
+        print(f"API Response Status: {response.status_code}")
         
         if response.status_code == 200:
             result = response.json()
             if "candidates" in result and result["candidates"]:
                 return result["candidates"][0]["content"]["parts"][0]["text"]
+        else:
+            print(f"API Error: {response.text}")
+            
     except Exception as e:
-        print(f"Gemini API error: {e}")
+        print(f"Exception: {e}")
+    
     return None
 
 @app.route("/solve", methods=["POST"])
