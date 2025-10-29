@@ -63,7 +63,7 @@ def solve():
     problem = data['problem'].strip()
     language = data.get('language', 'python')
     
-    if len(problem) < 10:
+    if len(problem) < 5:
         return jsonify({"error": "Problem too short"}), 400
     
     # Enhanced prompt for complete solution with explanation
