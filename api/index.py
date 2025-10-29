@@ -68,12 +68,12 @@ def solve():
     if language not in supported_languages:
         return jsonify({"error": f"Unsupported language. Supported: {', '.join(supported_languages[:10])}..."}), 400
     
-    if len(problem) < 5:
-        return jsonify({"error": "Problem too short"}), 400
+    if len(problem) < 3:
+        return jsonify({"error": "Problem name too short"}), 400
     
     # Enhanced prompt for complete solution with explanation
     prompt = f"""
-Solve this LeetCode problem in {language}. Provide:
+Solve the LeetCode problem "{problem}" in {language}. Provide:
 
 1. APPROACH: Brief explanation of the solution strategy
 2. ALGORITHM: Step-by-step algorithm 
@@ -81,10 +81,7 @@ Solve this LeetCode problem in {language}. Provide:
 4. COMPLEXITY: Time and space complexity
 5. EXAMPLE: Walk through with sample input
 
-Problem:
-{problem}
-
-Format your response clearly with these 5 sections.
+Find the problem by name and solve it. Format your response clearly with these 5 sections.
 """
     
     ai_response = call_gemini(prompt)
@@ -128,7 +125,7 @@ def explain():
     problem = data['problem'].strip()
     
     prompt = f"""
-Explain this LeetCode problem in detail:
+Explain the LeetCode problem "{problem}" in detail:
 
 1. PROBLEM BREAKDOWN: What the problem is asking
 2. KEY INSIGHTS: Important observations to solve it
@@ -136,10 +133,7 @@ Explain this LeetCode problem in detail:
 4. PATTERNS: What algorithmic patterns this uses
 5. TIPS: How to approach similar problems
 
-Problem:
-{problem}
-
-Make it educational and easy to understand.
+Find the problem by name and explain it. Make it educational and easy to understand.
 """
     
     ai_response = call_gemini(prompt)
