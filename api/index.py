@@ -1,8 +1,7 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template_string
 from flask_cors import CORS
 import requests
 import os
-import re
 
 app = Flask(__name__)
 CORS(app)
@@ -10,178 +9,146 @@ CORS(app)
 @app.route("/")
 def root():
     return jsonify({
-        "name": "LeetCode AI Solver with Explanations",
-        "endpoints": {
-            "/solve": "POST - Solve with code + explanation",
-            "/explain": "POST - Get detailed explanation only"
-        },
-        "languages": ["python", "javascript", "java", "cpp", "c", "csharp", "go", "rust", "kotlin", "swift", "php", "ruby", "scala", "typescript", "dart", "r", "matlab", "perl", "lua", "haskell", "clojure", "elixir", "fsharp", "vb"]
+        "message": "LeetCode Solver API", 
+        "endpoint": "/solve",
+        "docs": "/docs"
     })
 
-@app.after_request
-def after_request(response):
-    response.headers.add('Access-Control-Allow-Origin', '*')
-    response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
-    response.headers.add('Access-Control-Allow-Methods', 'GET,POST')
-    return response
+@app.route("/docs")
+def swagger_ui():
+    return render_template_string('''
+<!DOCTYPE html>
+<html>
+<head>
+    <title>LeetCode Solver</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        .container { max-width: 800px; }
+        .endpoint { background: #f5f5f5; padding: 20px; margin: 20px 0; border-radius: 5px; }
+        button { background: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; }
+        textarea { width: 100%; height: 100px; margin: 10px 0; }
+        #result { background: #f8f9fa; padding: 15px; border-radius: 5px; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 LeetCode Solver</h1>
+        
+        <div class="endpoint">
+            <h3>Solve LeetCode Problem</h3>
+            <textarea id="problemInput" placeholder="Enter LeetCode problem description...">Two Sum: Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target.</textarea>
+            <br>
+            <button onclick="solveProblem()">Get Solution</button>
+            <div id="result"></div>
+        </div>
+    </div>
+    
+    <script>
+        async function solveProblem() {
+            const problem = document.getElementById('problemInput').value;
+            const resultDiv = document.getElementById('result');
+            
+            if (!problem.trim()) {
+                resultDiv.innerHTML = '<p style="color: red;">Please enter a problem</p>';
+                return;
+            }
+            
+            resultDiv.innerHTML = '<p>Solving...</p>';
+            
+            try {
+                const response = await fetch('/solve', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ problem: problem })
+                });
+                
+                const data = await response.json();
+                
+                if (data.solution) {
+                    resultDiv.innerHTML = `<h4>Solution:</h4><pre>${data.solution}</pre>`;
+                } else {
+                    resultDiv.innerHTML = `<p style="color: red;">Error: ${data.error}</p>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
+            }
+        }
+    </script>
+</body>
+</html>
+    ''')
 
-def clean_code(text):
-    text = re.sub(r'```\w*\n?', '', text)
-    text = re.sub(r'```', '', text)
-    return text.strip()
-
-def call_gemini(prompt):
+@app.route("/solve", methods=["POST"])
+def solve_leetcode():
+    data = request.get_json()
+    if not data or "problem" not in data:
+        return jsonify({"error": "Problem required"}), 400
+    
     API_KEY = os.getenv("GEMINI_API_KEY")
     if not API_KEY:
-        print("No API key found")
-        return None
+        return jsonify({"error": "API not configured"}), 500
+    
+    prompt = f"""Solve this LeetCode problem. Give me ONLY working Python code that I can copy-paste into LeetCode.
+
+PROBLEM: {data['problem']}
+
+RULES:
+- Give me ONLY the class Solution with working code
+- Use correct method names (twoSum, maxSubArray, etc.)
+- Make sure code actually works
+- NO explanations, NO complexity analysis, NO examples
+- Just clean working code
+
+Format:
+```python
+class Solution:
+    def correctMethodName(self, params):
+        # working code
+        return result
+```"""
     
     try:
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={API_KEY}"
-        
-        payload = {
-            "contents": [{
-                "parts": [{"text": prompt}]
-            }]
-        }
-        
         response = requests.post(
-            url,
-            headers={"Content-Type": "application/json"},
-            json=payload,
+            "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent",
+            headers={
+                "Content-Type": "application/json",
+                "X-goog-api-key": API_KEY,
+            },
+            json={
+                "contents": [{"parts": [{"text": prompt}]}],
+                "generationConfig": {
+                    "maxOutputTokens": 500,
+                    "temperature": 0,
+                    "topP": 0.9
+                }
+            },
             timeout=30
         )
         
-        print(f"API Response Status: {response.status_code}")
-        
         if response.status_code == 200:
             result = response.json()
-            if "candidates" in result and result["candidates"]:
-                return result["candidates"][0]["content"]["parts"][0]["text"]
+            ai_response = result["candidates"][0]["content"]["parts"][0]["text"]
+            
+            # Clean the response - remove markdown and extra text
+            import re
+            code_match = re.search(r'```python\n(.*?)\n```', ai_response, re.DOTALL)
+            if code_match:
+                clean_code = code_match.group(1)
+            else:
+                # If no code block found, try to extract class Solution
+                lines = ai_response.split('\n')
+                code_lines = []
+                in_class = False
+                for line in lines:
+                    if 'class Solution' in line:
+                        in_class = True
+                    if in_class:
+                        code_lines.append(line)
+                clean_code = '\n'.join(code_lines) if code_lines else ai_response
+            
+            return jsonify({"solution": clean_code})
         else:
-            print(f"API Error: {response.text}")
+            return jsonify({"error": f"API Error: {response.status_code}"}), 500
             
     except Exception as e:
-        print(f"Exception: {e}")
-    
-    return None
-
-@app.route("/solve", methods=["POST"])
-def solve():
-    data = request.get_json()
-    
-    if not data or "problem" not in data:
-        return jsonify({"error": "Problem required"}), 400
-    
-    problem = data['problem'].strip()
-    language = data.get('language', 'python')
-    
-    if len(problem) < 3:
-        return jsonify({"error": "Problem name too short"}), 400
-    
-    prompt = f"""
-Solve the LeetCode problem "{problem}" in {language}.
-
-Provide your response in this exact format:
-
-APPROACH:
-[Brief explanation of the solution strategy]
-
-ALGORITHM:
-1. [Step 1]
-2. [Step 2]
-3. [Step 3]
-
-CODE:
-[Clean, working code]
-
-COMPLEXITY:
-Time: O(...)
-Space: O(...)
-
-EXAMPLE:
-[Walk through with sample input/output]
-"""
-    
-    ai_response = call_gemini(prompt)
-    if not ai_response:
-        return jsonify({"error": "AI service unavailable"}), 503
-    
-    # Parse sections
-    sections = {}
-    current_section = None
-    lines = ai_response.split('\n')
-    
-    for line in lines:
-        line = line.strip()
-        if line.upper().startswith(('APPROACH:', 'ALGORITHM:', 'CODE:', 'COMPLEXITY:', 'EXAMPLE:')):
-            current_section = line.split(':')[0].upper()
-            sections[current_section] = []
-        elif current_section and line:
-            sections[current_section].append(line)
-    
-    # Extract code
-    code_lines = sections.get('CODE', [])
-    solution = clean_code('\n'.join(code_lines)) if code_lines else ai_response
-    
-    # Extract algorithm steps
-    algorithm_lines = sections.get('ALGORITHM', [])
-    algorithm_steps = [line.lstrip('0123456789. ') for line in algorithm_lines if line.strip()]
-    
-    return jsonify({
-        "solution": solution,
-        "approach": '\n'.join(sections.get('APPROACH', [])) or "Optimized solution approach",
-        "algorithm": algorithm_steps or ["Implementation details in code"],
-        "complexity": '\n'.join(sections.get('COMPLEXITY', [])) or "Time and space complexity analysis",
-        "example": '\n'.join(sections.get('EXAMPLE', [])) or "Example walkthrough provided",
-        "language": language
-    })
-
-@app.route("/explain", methods=["POST"])
-def explain():
-    data = request.get_json()
-    
-    if not data or "problem" not in data:
-        return jsonify({"error": "Problem required"}), 400
-    
-    problem = data['problem'].strip()
-    
-    prompt = f"""
-Explain the LeetCode problem "{problem}" in detail:
-
-1. PROBLEM BREAKDOWN: What the problem is asking
-2. KEY INSIGHTS: Important observations to solve it
-3. APPROACHES: Different ways to solve (brute force, optimal)
-4. PATTERNS: What algorithmic patterns this uses
-5. TIPS: How to approach similar problems
-
-Find the problem by name and explain it. Make it educational and easy to understand.
-"""
-    
-    ai_response = call_gemini(prompt)
-    if not ai_response:
-        return jsonify({"error": "Service unavailable"}), 503
-    
-    # Parse explanation sections
-    sections = {}
-    current_section = None
-    lines = ai_response.split('\n')
-    
-    for line in lines:
-        line = line.strip()
-        if any(keyword in line.upper() for keyword in ['BREAKDOWN:', 'INSIGHTS:', 'APPROACHES:', 'PATTERNS:', 'TIPS:']):
-            current_section = line.split(':')[0].upper()
-            sections[current_section] = []
-        elif current_section and line:
-            sections[current_section].append(line)
-    
-    return jsonify({
-        "breakdown": '\n'.join(sections.get('PROBLEM BREAKDOWN', sections.get('BREAKDOWN', []))),
-        "insights": sections.get('KEY INSIGHTS', sections.get('INSIGHTS', [])),
-        "approaches": sections.get('APPROACHES', []),
-        "patterns": sections.get('PATTERNS', []),
-        "tips": sections.get('TIPS', [])
-    })
-
-if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=int(os.getenv('PORT', 5000)))
+        return jsonify({"error": str(e)}), 500
