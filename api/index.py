@@ -88,24 +88,18 @@ def solve_leetcode():
     if not API_KEY:
         return jsonify({"error": "API not configured"}), 500
     
-    prompt = f"""Solve this LeetCode problem. Give me ONLY working Python code that I can copy-paste into LeetCode.
+    prompt = f"""Write ONLY the Python code to solve this LeetCode problem. No explanations, no examples, no walkthroughs.
 
-PROBLEM: {data['problem']}
+{data['problem']}
 
-RULES:
-- Give me ONLY the class Solution with working code
-- Use correct method names (twoSum, maxSubArray, etc.)
-- Make sure code actually works
-- NO explanations, NO complexity analysis, NO examples
-- Just clean working code
+Return ONLY this format:
 
-Format:
-```python
 class Solution:
-    def correctMethodName(self, params):
-        # working code
+    def methodName(self, params):
+        # actual working code here
         return result
-```"""
+
+Nothing else. Just the code."""
     
     try:
         response = requests.post(
@@ -117,9 +111,9 @@ class Solution:
             json={
                 "contents": [{"parts": [{"text": prompt}]}],
                 "generationConfig": {
-                    "maxOutputTokens": 500,
+                    "maxOutputTokens": 300,
                     "temperature": 0,
-                    "topP": 0.9
+                    "topP": 0.8
                 }
             },
             timeout=30
@@ -129,22 +123,29 @@ class Solution:
             result = response.json()
             ai_response = result["candidates"][0]["content"]["parts"][0]["text"]
             
-            # Clean the response - remove markdown and extra text
+            # Extract only the code, remove everything else
             import re
-            code_match = re.search(r'```python\n(.*?)\n```', ai_response, re.DOTALL)
-            if code_match:
-                clean_code = code_match.group(1)
-            else:
-                # If no code block found, try to extract class Solution
-                lines = ai_response.split('\n')
-                code_lines = []
-                in_class = False
-                for line in lines:
-                    if 'class Solution' in line:
-                        in_class = True
-                    if in_class:
-                        code_lines.append(line)
-                clean_code = '\n'.join(code_lines) if code_lines else ai_response
+            
+            # Remove markdown
+            clean_response = re.sub(r'```python\n?', '', ai_response)
+            clean_response = re.sub(r'```', '', clean_response)
+            
+            # Find class Solution block
+            lines = clean_response.split('\n')
+            code_lines = []
+            in_solution = False
+            
+            for line in lines:
+                if 'class Solution' in line:
+                    in_solution = True
+                    code_lines.append(line)
+                elif in_solution and (line.startswith('    ') or line.strip() == ''):
+                    code_lines.append(line)
+                elif in_solution and not line.startswith('    ') and line.strip():
+                    # End of class, stop collecting
+                    break
+            
+            clean_code = '\n'.join(code_lines).strip() if code_lines else 'No solution found'
             
             return jsonify({"solution": clean_code})
         else:
